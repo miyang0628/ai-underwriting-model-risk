@@ -1,0 +1,7 @@
+Specification,Scope,AUC,PR_AUC,Brier
+Sex-stratified,Male,0.771,0.409,0.132
+Sex-stratified,Female,0.821,0.386,0.098
+Sex-stratified,Combined,0.801,0.395,0.113
+Pooled (sex feature),Overall,0.803,0.396,0.112
+Pooled (sex feature),Male subset,0.77,0.407,0.133
+Pooled (sex feature),Female subset,0.826,0.391,0.097

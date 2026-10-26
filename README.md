@@ -1,118 +1,107 @@
-# Managing the Model Risk of AI-Based Insurance Underwriting
+# Auditable XAI for Insurance Underwriting
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Status: Under Review](https://img.shields.io/badge/Status-Under%20Review-lightgrey.svg)](#)
+Reproducible code for an auditable, counterfactual-explanation pipeline that manages the
+model-risk, interpretability, and regulatory-compliance exposures of AI-based insurance
+underwriting, demonstrated on diabetes risk classification using the Korea National Health
+and Nutrition Examination Survey (KNHANES, 2020–2024).
 
-> **An auditable counterfactual framework linking interpretability, regulatory
-> compliance, and loss-ratio impact for AI-based insurance underwriting.**
->
-> *Anonymous authors — manuscript under review at an anonymous journal.*
+> **Anonymised for peer review.** Author, affiliation, and target-journal identifiers have
+> been removed for double-blind submission. Do not add identifying information to this
+> repository until the review process is complete.
 
-This repository contains the full, reproducible analysis code for an end-to-end
-**XGBoost → DiCE → LLM** pipeline for diabetes risk stratification in insurance
-underwriting, framed as a problem of **financial-risk governance** (model risk,
-interpretability risk, and regulatory-compliance risk). It is applied to
-sex-stratified data from the Korea National Health and Nutrition Examination
-Survey (KNHANES 2020–2024; *n* = 13,437).
+## Pipeline overview
 
-```
-KNHANES 2020-2024 (raw SAS)
-  -> 01 preprocessing            sex-stratified, complete-case (n=13,437)
-  -> 02 EDA                      prevalence (M 30.0% / F 20.0%), descriptives
-  -> 03 training + evaluation    7-algorithm Optuna comparison, Platt calibration,
-                                 DeLong tests, bootstrap AUC CIs, DCA
-  -> 04 lift + cost-benefit      top-40% high-risk; scenario + Monte Carlo PSA
-  -> 05 DiCE counterfactuals     individual algorithmic recourse
-  -> 06 robustness               inter-model consistency (Jaccard)
-  -> 07 SHAP vs DiCE             attribution vs recourse comparison
-  -> 08 LLM guide generation     GPT-4o-mini consultation guides        [API]
-  -> 09 LLM-as-Judge + crossmodel 3 personas x 7 dims; GPT-4o replication [API]
-```
+| Stage | Notebook | Runs | Output |
+|------|----------|------|--------|
+| Data preparation (outcome definition, predictors, complete-case) | `01_data_preparation.ipynb` | locally/cloud | analytic dataset, prevalence table |
+| EDA & sample characteristics | `02_eda_sample_characteristics.ipynb` | locally/cloud | baseline table, prevalence-by-age figure |
+| Model training & selection (7 algorithms, Optuna, DeLong) | `03_model_training_and_selection.ipynb` | locally/cloud | models, comparison & DeLong tables |
+| Probability calibration (Platt) | `04_calibration.ipynb` | locally/cloud | calibrated scores, calibration figure |
+| Decision-curve & lift analysis | `05_decision_curve_and_lift.ipynb` | locally/cloud | DCA/lift figures, high-risk cohort |
+| DiCE counterfactual explanation | `06_counterfactual_dice.ipynb` | locally/cloud | representative cases, CF distribution |
+| SHAP vs DiCE comparison | `07_shap_vs_dice.ipynb` | locally/cloud | comparison table, SHAP figure, eval cases |
+| Inter-model robustness | `08_robustness_inter_model_consistency.ipynb` | locally/cloud | consistency table & figure |
+| Cost–benefit & Monte Carlo | `09_cost_benefit_and_monte_carlo.ipynb` | locally/cloud | scenario table, Monte Carlo, tornado |
+| **LLM guide generation** | `10_llm_guide_generation.ipynb` | **local (API key)** | `results/llm/guides.jsonl` |
+| **LLM-as-a-Judge evaluation** | `11_llm_judge_evaluation.ipynb` | **local (API key)** | `results/llm/judge_scores.csv` |
+| Guide-quality analysis | `12_quality_analysis.ipynb` | after 10–11 | quality tables & figure |
+| Pooled vs sex-stratified model (Appendix E3) | `13_pooled_vs_separate_model.ipynb` | locally/cloud | `table_e3_pooled_vs_separate.csv` |
+| Out-of-time, subgroup fairness, lift bootstrap | `14_out_of_time_subgroup_liftboot.ipynb` | locally/cloud | `table_c2_out_of_time.csv`, `table_c3_subgroup_fairness.csv`, `table_c5_lift_bootstrap.csv` |
+| Effect size & TOST equivalence (DiCE vs SHAP) | `15_effect_size_tost.ipynb` | after 11 | `table_a6_effect_size_tost.csv` |
+| Constrained (coupled-feasibility) DiCE | `16_constrained_coupled_dice.ipynb` | locally/cloud | `table_c1_constrained_dice.csv` |
+
+Notebooks 01–09 and 13–16 require no API key and reproduce the quantitative modelling results.
+Notebooks 10–11 call the OpenAI API and are intended to be run locally with your own key;
+notebook 12 analyses their output. Each notebook is a single self-contained code cell.
+
+### Supplementary / revision analyses (notebooks 13–16)
+
+These were added to support the latest revision:
+
+- **13** fits a pooled model with sex as a feature on the identical train/test split and
+  shows it is competitive on AUC with the sex-stratified models (Appendix E3).
+- **14** adds temporal (train 2020–22 → test 2023–24) validation, subgroup discrimination
+  and calibration by income/education quartile, and a bootstrap of the lift screening boundary.
+- **15** reports Cohen's *d*, 95% CIs, Welch tests, and a TOST equivalence test for the
+  DiCE-vs-SHAP guide-quality comparison (so a non-significant difference is not read as equivalence).
+- **16** re-runs DiCE with coupled anthropometric and dietary feasibility constraints and reports
+  the share of counterfactuals that remain coherent and risk-reducing. DiCE random search is slow;
+  `N_SAMPLE` defaults to 40 per sex for a tractable demonstration — raise it to reproduce the full cohort.
 
 ## Repository structure
 
 ```
-ai-underwriting-model-risk/
-├── data/
-│   ├── raw/           # KNHANES SAS files (NOT redistributed — see Data access)
-│   └── processed/     # intermediate CSV/JSON/model artifacts (generated)
-├── notebooks/         # 01–09, each a single self-contained cell
+.
+├── data/                      # KNHANES .sas7bdat (not redistributed) + derived artifacts
+├── notebooks/                 # 01–16, one self-contained cell each
 ├── results/
-│   ├── figures/       # grayscale, dpi 600, PNG + PDF, no in-image captions
-│   └── tables/        # result tables (CSV)
+│   ├── figures/               # grayscale, dpi 600, PNG + PDF
+│   ├── tables/                # CSV tables
+│   └── llm/                   # guides + judge scores (generated locally by 10–11)
+├── models/                    # trained XGBoost models (generated by 03–04)
 ├── requirements.txt
-├── .env.example       # template for the OpenAI API key (notebooks 08–09)
-├── .gitignore
-└── LICENSE
+├── .env.example
+└── .gitignore
 ```
+
+## Data access
+
+KNHANES microdata are publicly available from the Korea Disease Control and Prevention
+Agency (KDCA) at <https://knhanes.kdca.go.kr> under an open-data licence and are **not
+redistributed** here. Place the wave files `hn20_all.sas7bdat` … `hn24_all.sas7bdat` in
+`data/` before running `01_data_preparation.ipynb`.
+
+**Outcome.** Diabetes is defined as any of: HbA1c ≥ 6.5%, fasting plasma glucose ≥ 126 mg/dL,
+physician diagnosis, use of glucose-lowering medication/insulin, or the KNHANES HbA1c-based
+diabetes status. **Predictors (16):** anthropometric (BMI, waist circumference, weight,
+height), dietary (energy, carbohydrate, sugar, cholesterol), lifestyle (current smoking,
+monthly alcohol, aerobic-activity guideline), and socioeconomic/behavioural (breakfast
+frequency, education, household income, self-rated health). The full dictionary with DiCE
+actionability tiers is written to `results/tables/predictor_dictionary.csv`.
 
 ## Setup
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env            # then edit .env with your OpenAI API key
+jupyter lab                     # run notebooks 01 → 12 in order
 ```
 
-For the LLM notebooks (08–09), copy `.env.example` to `.env` and add your key:
+All stochastic steps are seeded (`random_state = 42`). The LLM API steps use
+`temperature = 0.3` for guide generation and `temperature = 0.0` for evaluation; the
+generator and the two judge models are configured in `.env`. Because the judges differ
+from the generator, same-model self-evaluation is avoided; note, however, that all three
+models are from the same vendor family, so this mitigates but does not fully eliminate
+shared-vendor evaluation bias. Validation with a heterogeneous-architecture judge or a
+human expert panel remains future work.
 
-```bash
-cp .env.example .env
-# edit .env:
-#   OPENAI_API_KEY=sk-...
-#   LLM_MODEL=gpt-4o-mini
-```
+## Figures
 
-`.env` is git-ignored and must never be committed.
-
-## Data access
-
-The KNHANES microdata are **not** included (licensing). Download
-`hn20_all.sas7bdat … hn24_all.sas7bdat` from the Korea Disease Control and
-Prevention Agency (<https://knhanes.kdca.go.kr>) and place them in `data/raw/`.
-
-## Running
-
-Run the notebooks in order (01 → 09). Each notebook is a single cell that
-resolves the repository root automatically, reads its inputs from
-`data/processed/`, and writes figures/tables to `results/`. Notebooks 08–09
-require a valid API key and are the only ones that make network calls.
-
-## Reproducibility
-
-- All stochastic steps are seeded (`SEED = 42`).
-- Notebook 03 exposes `N_TRIALS` (Optuna trials; default **100** as in the
-  paper) via an environment variable, and `ALGOS` to optionally restrict the
-  algorithm set for quick runs.
-- Notebooks 05/06 expose `MAX_CASES` / `N_CASES` to cap the number of
-  individuals for quick runs (defaults use the full cohort / paper settings).
-- Figures are grayscale (seaborn), 600 dpi, saved as both PNG and PDF, with no
-  in-image titles or captions (captions belong in the manuscript).
-- Package versions are pinned in `requirements.txt`. Minor numeric differences
-  from the manuscript can arise from library versions and the stochastic
-  hyperparameter search; the pipeline and conclusions are unaffected.
-
-## Key outputs
-
-| Notebook | Figures (`results/figures/`) | Tables (`results/tables/`) |
-|---|---|---|
-| 02 | `eda_prevalence_by_sex`, `eda_age_distribution` | `prevalence_by_sex`, `descriptive_stats` |
-| 03 | `roc_{male,female}`, `calibration_{male,female}`, `decision_curve_male_female` | `performance_{male,female}`, `delong_{male,female}`, `calibration`, `final_model_summary` |
-| 04 | `lift_curves_male_female`, `costbenefit_montecarlo`, `costbenefit_tornado` | `lift_summary`, `cost_benefit_scenarios`, `cost_benefit_montecarlo` |
-| 05 | `counterfactual_scatter`, `counterfactual_reduction` | `counterfactual_summary` |
-| 06 | `robustness_heatmap` | `robustness_consistency` |
-| 07 | `shap_importance_{male,female}` | `shap_vs_dice`, `shap_importance_{male,female}` |
-| 09 | `judge_scores_heatmap`, `cross_model_agreement` | `judge_scores_by_persona_dimension`, `cross_model_correlation` |
-
-
-> **Note on example outputs.** `results/` ships with example figures and tables from a representative run. `robustness_heatmap` (notebook 06) requires the LightGBM/CatBoost pipelines, so run notebook 03 with its default multi-algorithm setting before notebook 06. DiCE (05/06) uses the genetic method; `random` is incompatible with pandas 3.x.
-
-> **Conceptual figures.** The manuscript's Figure 1 (end-to-end pipeline) and
-> Figure 2 (three-risk → control map) are schematic design assets, not generated
-> by this code; they live with the manuscript (LaTeX) sources. All other figures
-> are produced by the notebooks above.
+All figures are generated with seaborn in grayscale at 600 dpi and saved as both `.png`
+and `.pdf` without embedded titles or captions, for direct inclusion in the manuscript.
 
 ## License
 
-Released under the MIT License (see `LICENSE`). KNHANES data are governed by the
-KDCA open-data licence and are not redistributed here.
+Code released under the MIT License (see `LICENSE`). KNHANES data are governed by the KDCA
+open-data licence and are not covered by this repository's license.
