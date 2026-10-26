@@ -1,4 +1,0 @@
-Scenario,pi,eps,dL,Screening_cost_K,Prevented_claims_K,Net_benefit_K,LossRatio_improvement_pp
-Conservative,0.1,0.15,8000,50.0,120.0,70.0,1.0
-Base,0.15,0.2,10000,50.0,300.0,250.0,2.5
-Optimistic,0.2,0.25,12000,50.0,600.0,550.0,5.0

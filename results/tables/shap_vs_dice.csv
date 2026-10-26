@@ -1,3 +1,0 @@
-Sex,SHAP_Top3,SHAP_provides_target_value,DiCE_provides_target_value,Mean_Jaccard_SHAP_vs_DiCE,SHAP_top3_actionable
-male,age|HE_wc|L_BR_FQ,No,Yes,0.098,2
-female,age|HE_wc|edu,No,Yes,0.102,2
